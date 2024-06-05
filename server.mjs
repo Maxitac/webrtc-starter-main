@@ -1,0 +1,111 @@
+import fs from 'fs';
+import https from 'https';
+import express from 'express';
+import { Server } from 'socket.io';
+
+const app = express();
+app.use(express.static(__dirname));
+
+const key = fs.readFileSync('cert.key');
+const cert = fs.readFileSync('cert.crt');
+
+const expressServer = https.createServer({ key, cert }, app);
+const io = new Server(expressServer, {
+  cors: {
+    origin: [
+      "https://localhost",
+      'https://192.168.100.138'
+    ],
+    methods: ["GET", "POST"]
+  }
+});
+expressServer.listen(8181);
+
+const offers = [];
+const connectedSockets = [];
+
+io.on('connection', (socket) => {
+  const userName = socket.handshake.auth.userName;
+  const password = socket.handshake.auth.password;
+
+  if (password !== "x") {
+    socket.disconnect(true);
+    return;
+  }
+  connectedSockets.push({
+    socketId: socket.id,
+    userName
+  });
+
+  if (offers.length) {
+    socket.emit('availableOffers', offers);
+  }
+
+  socket.on('newOffer', (newOffer) => {
+    offers.push({
+      offererUserName: userName,
+      offer: newOffer,
+      offerIceCandidates: [],
+      answererUserName: null,
+      answer: null,
+      answererIceCandidates: []
+    });
+    socket.broadcast.emit('newOfferAwaiting', offers.slice(-1));
+  });
+
+  socket.on('newAnswer', (offerObj, ackFunction) => {
+    const socketToAnswer = connectedSockets.find(s => s.userName === offerObj.offererUserName);
+    if (!socketToAnswer) {
+      console.log("No matching socket");
+      return;
+    }
+    const socketIdToAnswer = socketToAnswer.socketId;
+    const offerToUpdate = offers.find(o => o.offererUserName === offerObj.offererUserName);
+    if (!offerToUpdate) {
+      console.log("No OfferToUpdate");
+      return;
+    }
+    ackFunction(offerToUpdate.offerIceCandidates);
+    offerToUpdate.answer = offerObj.answer;
+    offerToUpdate.answererUserName = userName;
+    socket.to(socketIdToAnswer).emit('answerResponse', offerToUpdate);
+  });
+
+  socket.on('sendIceCandidateToSignalingServer', (iceCandidateObj) => {
+    const { didIOffer, iceUserName, iceCandidate } = iceCandidateObj;
+    if (didIOffer) {
+      const offerInOffers = offers.find(o => o.offererUserName === iceUserName);
+      if (offerInOffers) {
+        offerInOffers.offerIceCandidates.push(iceCandidate);
+        if (offerInOffers.answererUserName) {
+          const socketToSendTo = connectedSockets.find(s => s.userName === offerInOffers.answererUserName);
+          if (socketToSendTo) {
+            socket.to(socketToSendTo.socketId).emit('receivedIceCandidateFromServer', iceCandidate);
+          } else {
+            console.log("Ice candidate received but could not find answerer");
+          }
+        }
+      }
+    } else {
+      const offerInOffers = offers.find(o => o.answererUserName === iceUserName);
+      const socketToSendTo = connectedSockets.find(s => s.userName === offerInOffers.offererUserName);
+      if (socketToSendTo) {
+        socket.to(socketToSendTo.socketId).emit('receivedIceCandidateFromServer', iceCandidate);
+      } else {
+        console.log("Ice candidate received but could not find offerer");
+      }
+    }
+  });
+
+  socket.on('hangup', ({ userName }) => {
+    const offerToHangup = offers.find(o => o.offererUserName === userName || o.answererUserName === userName);
+    if (offerToHangup) {
+      const otherUserName = offerToHangup.offererUserName === userName ? offerToHangup.answererUserName : offerToHangup.offererUserName;
+      const otherSocket = connectedSockets.find(s => s.userName === otherUserName);
+      if (otherSocket) {
+        socket.to(otherSocket.socketId).emit('hangupNotification');
+      }
+      offers.splice(offers.indexOf(offerToHangup), 1);
+    }
+  });
+});

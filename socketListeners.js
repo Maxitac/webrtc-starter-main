@@ -31,3 +31,8 @@ function createOfferEls(offers){
         answerEl.appendChild(newOfferEl);
     })
 }
+
+socket.on('hangupNotification', () => {
+    console.log('The other peer has hung up.');
+    hangup();
+});
