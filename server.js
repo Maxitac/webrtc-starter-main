@@ -101,19 +101,19 @@ const socketio = require('socket.io');
     });
   
 
-socket.on('hangup', ({ userName }) => {
-    const offerToHangup = offers.find(o => o.offererUserName === userName || o.answererUserName === userName);
-    if (offerToHangup) {
-        // Notify the other peer about the hangup
-        const otherUserName = offerToHangup.offererUserName === userName ? offerToHangup.answererUserName : offerToHangup.offererUserName;
-        const otherSocket = connectedSockets.find(s => s.userName === otherUserName);
-        if (otherSocket) {
-            socket.to(otherSocket.socketId).emit('hangupNotification');
+    socket.on('hangup', () => {
+        console.log("Hangup received");
+        const offerToHangup = offers.find(o => o.offererUserName === userName || o.answererUserName === userName);
+        if (offerToHangup) {
+            const otherUserName = offerToHangup.offererUserName === userName ? offerToHangup.answererUserName : offerToHangup.offererUserName;
+            const otherSocket = connectedSockets.find(s => s.userName === otherUserName);
+            if (otherSocket) {
+                socket.to(otherSocket.socketId).emit('hangupNotification');
+            }
+            offers.splice(offers.indexOf(offerToHangup), 1);
         }
-        // Remove the offer from the list
-        offers.splice(offers.indexOf(offerToHangup), 1);
-    }
-});
+    });
+    
 
   });
 })();

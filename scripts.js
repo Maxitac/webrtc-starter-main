@@ -55,6 +55,7 @@ const hangup = async e => {
         localVideoEl.srcObject = null;
         remoteVideoEl.srcObject = null;
         console.log("Call ended.");
+        window.location.href = '/';
     }
 };
 
