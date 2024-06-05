@@ -30,6 +30,26 @@ let peerConfiguration = {
     ]
 };
 
+const muteMicrophone = () => {
+    const audioTrack = localStream.getAudioTracks()[0];
+    if(audioTrack){
+        audioTrack.enabled = !audioTrack.enabled;
+        document.querySelector('#mute').innerText = audioTrack.enabled ? "Mute" : "Unmute";
+
+    }
+};
+
+const toggleVideo = () => {
+    const videoTrack = localStream.getVideoTracks()[0];
+    if(videoTrack){
+        videoTrack.enabled = !videoTrack.enabled;
+        document.querySelector('#video').innerText = videoTrack.enabled ? "Video Off" : "Video On";
+    }
+};
+
+document.querySelector('#mute').addEventListener('click', muteMicrophone);
+document.querySelector('#video').addEventListener('click', toggleVideo);
+
 // when a client initiates a call
 const call = async e => {
     await fetchUserMedia();
@@ -84,7 +104,7 @@ const fetchUserMedia = () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
-                // audio: true,
+                audio: true,
             });
             localVideoEl.srcObject = stream;
             localStream = stream;
@@ -128,7 +148,7 @@ const createPeerConnection = (offerObj) => {
             console.log(e);
             e.streams[0].getTracks().forEach(track => {
                 remoteStream.addTrack(track, remoteStream);
-                console.log("Here's an exciting moment... fingers cross");
+                console.log("Here's an exciting moment... fingers crossed");
             });
         });
 
