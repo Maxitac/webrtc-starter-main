@@ -79,6 +79,58 @@ const hangup = async e => {
     }
 };
 
+const captureScreen = async () => {
+    try{
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({video : true});
+        return screenStream;
+    } catch(err){
+        console.error("Error: " + err);
+        return null
+    }
+};
+
+const switchToScreenshare = async() => {
+    const screenStream = await captureScreen();
+    if(screenStream){
+        const screenTrack = screenStream.getVideoTracks()[0];
+        const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+        sender.replaceTrack(screenTrack);
+        localVideoEl.srcObject = screenStream;
+        screenTrack.onended = () => {
+            const webcamTrack = localStream.getVideoTracks()[0];
+            sender.replaceTrack(webcamTrack);
+            localVideoEl.srcObject = localStream;
+        };
+    }
+};
+
+/*const addStopScreenShareButton = (screenTrack, sender) => {
+    const controlsDiv = document.querySelector('#controls');
+    const stopScreenShareButton = document.createElement('button');
+    stopScreenShareButton.id = 'stop-screen-share';
+    stopScreenShareButton.className = 'btn btn-secondary col-1';
+    stopScreenShareButton.innerText = 'Stop Screen Share';
+
+    stopScreenShareButton.addEventListener('click', () => {
+        screenTrack.stop();
+        revertToWebcam(sender);
+    });
+
+    controlsDiv.appendChild(stopScreenShareButton);
+};
+
+const revertToWebcam = (sender) => {
+    const webcamTrack = localStream.getVideoTracks()[0];
+    sender.replaceTrack(webcamTrack);
+    localVideoEl.srcObject = localStream;
+
+    // Remove the stop screen share button
+    const stopScreenShareButton = document.querySelector('#stop-screen-share');
+    if (stopScreenShareButton) {
+        stopScreenShareButton.remove();
+    }
+}; */
+
 const answerOffer = async (offerObj) => {
     await fetchUserMedia();
     await createPeerConnection(offerObj);
@@ -166,3 +218,4 @@ const addNewIceCandidate = iceCandidate => {
 
 document.querySelector('#call').addEventListener('click', call);
 document.querySelector('#hangup').addEventListener('click', hangup);
+document.querySelector('#screen-share').addEventListener('click', switchToScreenshare);
