@@ -14,24 +14,29 @@ try {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
+    $usernameOrEmail = $_POST['username_or_email'];
     $password = $_POST['password'];
 
-    // Prepare the SQL statement
-    $stmt = $pdo->prepare("SELECT * FROM Users WHERE username = :username");
-    $stmt->bindParam(':username', $username);
+    $stmt = $pdo->prepare("SELECT * FROM Users WHERE username = :username_or_email OR email = :username_or_email");
+    $stmt->bindParam(':username_or_email', $usernameOrEmail);
     $stmt->execute();
-
+    
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // If the user exists and the password is correct
-    if ($user && password_verify($password, $user['password'])) {
+    
+    if ($user && password_verify($password, $user['password_hash'])) {
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        header("Location: localhost/webrtc/login.php"); // Redirect to a welcome page or dashboard
+        
+        // Insert session record
+        $stmt = $pdo->prepare("INSERT INTO sessions (user_id, created_at, expires_at) VALUES (:user_id, NOW(), DATE_ADD(NOW(), INTERVAL 3 HOUR))");
+        $stmt->bindParam(':user_id', $user['id']);
+        $stmt->execute();
+
+        // Redirect to the desired URL after successful login
+        $redirectUrl = 'https://192.168.100.138:8181';
+        header("Location: $redirectUrl");
         exit();
     } else {
-        echo "Invalid username or password";
+        echo "Invalid username/email or password";
     }
 }
 ?>
@@ -43,8 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <form method="POST" action="login.php">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required><br>
+        <label for="username_or_email">Username or Email:</label>
+        <input type="text" id="username_or_email" name="username_or_email" required><br>
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required><br>
         <input type="submit" value="Login">
