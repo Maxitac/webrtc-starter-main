@@ -1,8 +1,8 @@
 <?php
 $host = 'localhost';
 $db = 'authentication';
-$user = 'cnsadmin';
-$pass = 'cnsadmin@123';
+$user = 'webrtcAdmin';
+$pass = 'webRTCAdmin@123';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
@@ -46,6 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt->bindParam(':password_hash', $hashedPassword);
 
     if ($stmt->execute()) {
+        // Get the ID of the newly created user
+        $userId = $pdo->lastInsertId();
+
+        // Assign the default role (participant) to the new user
+        $roleId = 2; // Default role ID for participant
+        $stmt = $pdo->prepare("INSERT INTO userrolesmapping (user_id, role_id) VALUES (:user_id, :role_id)");
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':role_id', $roleId);
+        $stmt->execute();
+
         echo "Sign-up successful! You can now <a href='login.php'>login</a>.";
     } else {
         echo "Sign-up failed. Please try again.";
@@ -58,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Sign Up</title>
 </head>
 <body>
-    <form id="signupForm" method="POST" action="signup.php">
+    <form method="POST" action="signup.php">
         <label for="email">Email:</label>
         <input type="email" id="email" name="email" required><br>
         <label for="username">Username:</label>

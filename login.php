@@ -3,8 +3,8 @@ session_start();
 
 $host = 'localhost';
 $db = 'authentication';
-$user = 'cnsadmin';
-$pass = 'cnsadmin@123';
+$user = 'webrtcAdmin';
+$pass = 'webRTCAdmin@123';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
@@ -14,33 +14,37 @@ try {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $usernameOrEmail = $_POST['username_or_email'];
+    $login = $_POST['login'];
     $password = $_POST['password'];
 
-    $stmt = $pdo->prepare("SELECT * FROM Users WHERE username = :username_or_email OR email = :username_or_email");
-    $stmt->bindParam(':username_or_email', $usernameOrEmail);
+    // Query to fetch the user by username or email
+    $stmt = $pdo->prepare("SELECT * FROM Users WHERE username = :login OR email = :login");
+    $stmt->bindParam(':login', $login);
     $stmt->execute();
     
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($user && password_verify($password, $user['password_hash'])) {
-        $_SESSION['user_id'] = $user['id'];
-        
-        // Insert session record
-        $stmt = $pdo->prepare("INSERT INTO sessions (user_id, created_at, expires_at) VALUES (:user_id, NOW(), DATE_ADD(NOW(), INTERVAL 3 HOUR))");
-        $stmt->bindParam(':user_id', $user['id']);
-        $stmt->execute();
 
-        // Redirect to the desired URL after successful login
-        $redirectUrl = 'https://192.168.100.138:8181';
-        header("Location: $redirectUrl");
+    if ($user && password_verify($password, $user['password_hash'])) {
+        $_SESSION['user_id'] = $user['user_id'];
+
+        // Insert the session details into the sessions table
+        $user_id = $user['user_id'];
+        $created_at = date('Y-m-d H:i:s');
+        $session_token = bin2hex(random_bytes(16)); // Generate a unique session token
+
+        $insertSessionStmt = $pdo->prepare("INSERT INTO sessions (user_id, created_at, session_token) VALUES (:user_id, :created_at, :session_token)");
+        $insertSessionStmt->bindParam(':user_id', $user_id);
+        $insertSessionStmt->bindParam(':created_at', $created_at);
+        $insertSessionStmt->bindParam(':session_token', $session_token);
+        $insertSessionStmt->execute();
+
+        header("Location: index.php");
         exit();
     } else {
-        echo "Invalid username/email or password";
+        echo "Invalid login credentials";
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -48,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <form method="POST" action="login.php">
-        <label for="username_or_email">Username or Email:</label>
-        <input type="text" id="username_or_email" name="username_or_email" required><br>
+        <label for="login">Username or Email:</label>
+        <input type="text" id="login" name="login" required><br>
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required><br>
         <input type="submit" value="Login">
