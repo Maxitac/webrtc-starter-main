@@ -85,4 +85,4 @@ This project is a WebRTC-based application designed to facilitate video conferen
 6. Create a new Pull Request.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is not licensed and is purely for academic research purposes.
