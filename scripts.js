@@ -3,7 +3,7 @@ const password = "x";
 const roomId = location.pathname.split('/').pop();
 document.querySelector('#user-name').innerHTML = userName;
 
-const socket = io.connect('https://localhost:8181', {
+const socket = io.connect('https://10.51.60.244:8181', {
     auth: { userName, password, roomId }
 });
 

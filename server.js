@@ -11,7 +11,7 @@ const cert = fs.readFileSync('cert.crt');
 const expressServer = https.createServer({ key, cert }, app);
 const io = socketio(expressServer, {
     cors: {
-        origin: ["https://localhost", "https://10.54.3.61"],
+        origin: ["https://localhost","https://10.51.60.244"],
         methods: ["GET", "POST"]
     }
 });
