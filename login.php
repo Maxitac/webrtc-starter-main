@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $insertSessionStmt->bindParam(':session_token', $session_token);
         $insertSessionStmt->execute();
 
-        header("Location: https://10.51.60.244:8181");
+        header("Location: dashboard.php");
         exit();
     } else {
         echo "Invalid login credentials";

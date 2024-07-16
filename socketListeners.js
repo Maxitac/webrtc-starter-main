@@ -41,5 +41,5 @@ socket.on('hangupNotification', () => {
         remoteVideoEl.srcObject = null;
         console.log("Call ended.")
     }
-    window.location.href = '/';
+    window.location.href = '/dashboard.php';
 });

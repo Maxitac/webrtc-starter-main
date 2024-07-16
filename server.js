@@ -3,6 +3,8 @@ const https = require('https');
 const express = require('express');
 const app = express();
 const socketio = require('socket.io');
+const { v4: uuidV4 } = require('uuid');
+
 app.use(express.static(__dirname));
 
 const key = fs.readFileSync('cert.key');
@@ -11,11 +13,15 @@ const cert = fs.readFileSync('cert.crt');
 const expressServer = https.createServer({ key, cert }, app);
 const io = socketio(expressServer, {
     cors: {
-        origin: ["https://localhost","https://10.51.60.244"],
+        origin: ["https://localhost","https://192.168.100.138"],
         methods: ["GET", "POST"]
     }
 });
 expressServer.listen(8181);
+
+// Store rooms and current streamers
+const rooms = {};
+const streamers = {};
 
 const offers = {};
 const connectedSockets = {};
@@ -42,6 +48,12 @@ io.on('connection', (socket) => {
     if (offers[roomId].length) {
         socket.emit('availableOffers', offers[roomId]);
     }
+
+    // Handle room management
+    if (!rooms[roomId]) {
+        rooms[roomId] = [];
+    }
+    rooms[roomId].push(socket.id);
 
     socket.on('newOffer', newOffer => {
         offers[roomId].push({
@@ -93,7 +105,34 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle streaming
+    socket.on('start-stream', () => {
+        streamers[roomId] = socket.id;
+        socket.to(roomId).broadcast.emit('new-streamer', socket.id);
+    });
+
+    socket.on('stop-stream', () => {
+        if (streamers[roomId] === socket.id) {
+            socket.to(roomId).broadcast.emit('streamer-disconnected');
+            delete streamers[roomId];
+        }
+    });
+
     socket.on('disconnect', () => {
         connectedSockets[roomId] = connectedSockets[roomId].filter(s => s.socketId !== socket.id);
+        rooms[roomId] = rooms[roomId].filter(id => id !== socket.id);
+
+        if (streamers[roomId] === socket.id) {
+            socket.to(roomId).broadcast.emit('streamer-disconnected');
+            delete streamers[roomId];
+        }
     });
+});
+
+app.get('/', (req, res) => {
+    res.redirect(`/${uuidV4()}`);
+});
+
+app.get('/:room', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
 });
