@@ -1,15 +1,13 @@
 const fs = require('fs');
 const https = require('https');
 const express = require('express');
-const app = express();
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const socketio = require('socket.io');
 const { v4: uuidV4 } = require('uuid');
 
-app.use(express.static(__dirname));
-
+const app = express();
 const key = fs.readFileSync('cert.key');
 const cert = fs.readFileSync('cert.crt');
-
 const expressServer = https.createServer({ key, cert }, app);
 const io = socketio(expressServer, {
     cors: {
@@ -19,10 +17,18 @@ const io = socketio(expressServer, {
 });
 expressServer.listen(8181);
 
-// Store rooms and current streamers
+// Proxy requests to PHP server
+const phpServer = 'http://localhost:80'; // Apache server URL
+
+app.use('/', createProxyMiddleware({
+    target: phpServer,
+    changeOrigin: true,
+    ws: true
+}));
+
+// WebRTC signaling code remains the same...
 const rooms = {};
 const streamers = {};
-
 const offers = {};
 const connectedSockets = {};
 
@@ -49,7 +55,6 @@ io.on('connection', (socket) => {
         socket.emit('availableOffers', offers[roomId]);
     }
 
-    // Handle room management
     if (!rooms[roomId]) {
         rooms[roomId] = [];
     }
@@ -105,7 +110,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle streaming
     socket.on('start-stream', () => {
         streamers[roomId] = socket.id;
         socket.to(roomId).broadcast.emit('new-streamer', socket.id);
@@ -131,8 +135,4 @@ io.on('connection', (socket) => {
 
 app.get('/', (req, res) => {
     res.redirect(`/${uuidV4()}`);
-});
-
-app.get('/:room', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
 });
