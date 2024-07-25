@@ -14,7 +14,7 @@ const io = new Server(expressServer, {
   cors: {
     origin: [
       "https://localhost",
-      'https://192.168.100.138'
+      'https:// 192.168.100.138'
     ],
     methods: ["GET", "POST"]
   }

@@ -7,9 +7,6 @@ const socket = io.connect('https://192.168.100.138:8181', {
     auth: { userName, password, roomId }
 });
 
-
-
-
 const localVideoEl = document.querySelector('#local-video');
 const remoteVideoEl = document.querySelector('#remote-video');
 
