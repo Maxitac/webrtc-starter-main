@@ -53,6 +53,7 @@ $_SESSION['room_id'] = $room_id;
 $_SESSION['user_name'] = $user_name;
 
 // Redirect to Node.js server URL
-header("Location: https://192.168.100.138:8181/index.php");
+$url = "https://192.168.100.138:8181/index.php?username=" . urlencode($user_name) . "&roomid=" . urlencode($room_id) . "&userid=" . urlencode($user_id);
+header("Location: $url");
 exit();
 ?>

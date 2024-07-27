@@ -1,3 +1,14 @@
+/*const {createPool} = require('mysql');
+
+const pool = createPool({
+    host:"localhost",
+    user:"webrtcAdmin",
+    password:"webRTCAdmin@123",
+    database:"authentication",
+    connectionLimit: 10
+
+})*/
+
 const userName = "<?php echo htmlspecialchars($_SESSION['user_name']); ?>";
 const password = "x";
 const roomId = "<?php echo htmlspecialchars($_SESSION['room_id']); ?>";
