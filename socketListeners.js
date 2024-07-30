@@ -37,8 +37,7 @@ socket.on('hangupNotification', () => {
     if(peerConnection){
         peerConnection.close();
         peerConnection = null;
-        localVideoEl.srcObject = null;
-        remoteVideoEl.srcObject = null;
+        videoPlayerEl.srcObject = null
         console.log("Call ended.")
     }
     window.location.href = '/dashboard.php';

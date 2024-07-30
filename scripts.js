@@ -9,17 +9,24 @@ const pool = createPool({
 
 })*/
 
-const userName = "<?php echo htmlspecialchars($_SESSION['user_name']); ?>";
+/*const userName = "<?php echo htmlspecialchars($_SESSION['user_name']); ?>";
+console.log(userName);
 const password = "x";
 const roomId = "<?php echo htmlspecialchars($_SESSION['room_id']); ?>";
-document.querySelector('#user-name').innerHTML = userName;
+console.log(roomId);
+document.querySelector('#user-name').innerHTML = userName;*/
+
+const userName = document.querySelector('meta[username="username"]').content;
+console.log('Hello ' + userName);
+const roomId = document.querySelector('meta[roomid="roomid"]').content;
+console.log('You are in room ' + roomId);
+const password = "x";
 
 const socket = io.connect('https://192.168.100.138:8181', {
     auth: { userName, password, roomId }
 });
 
-const localVideoEl = document.querySelector('#local-video');
-const remoteVideoEl = document.querySelector('#remote-video');
+const videoPlayerEl = document.querySelector('#video-player');
 
 let localStream;
 let remoteStream;
@@ -70,9 +77,9 @@ const hangup = async e => {
         peerConnection.close();
         peerConnection = null;
         socket.emit('hangup');
-        localVideoEl.srcObject = null;
-        remoteVideoEl.srcObject = null;
-        window.location.href = '/';
+        videoPlayerEl.srcObject = null;
+        console.log("User " + userName + " has hung up");
+        window.location.href = 'https://192.168.100.138:8181/dashboard.php';
     }
 };
 
@@ -92,11 +99,11 @@ const switchToScreenshare = async () => {
         const screenTrack = screenStream.getVideoTracks()[0];
         const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
         sender.replaceTrack(screenTrack);
-        localVideoEl.srcObject = screenStream;
+        videoPlayerEl.srcObject = screenStream;
         screenTrack.onended = () => {
             const webcamTrack = localStream.getVideoTracks()[0];
             sender.replaceTrack(webcamTrack);
-            localVideoEl.srcObject = localStream;
+            videoPlayerEl.srcObject = localStream;
         };
     }
 };
@@ -115,27 +122,34 @@ const addAnswer = async (offerObj) => {
     await peerConnection.setRemoteDescription(offerObj.answer);
 };
 
-const fetchUserMedia = () => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localVideoEl.srcObject = stream;
-            localStream = stream;
-            resolve();
-        } catch (err) {
-            console.log(err);
-            reject();
+const fetchUserMedia = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        
+        localStream = stream;
+        videoPlayerEl.srcObject = stream;
+        videoPlayerEl.muted = true; // Ensure the local video feed is muted to avoid feedback
+        videoPlayerEl.play(); // Explicitly play the video to ensure it's visible
+    } catch (err) {
+        console.log(err);
+    }
+    const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack){
+            videoTrack.enabled = false; // Video is off by default, mic still active.
         }
-    });
 };
 
 const fetchRemoteMedia = () => {
     return new Promise(async (resolve, reject) => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({video: false, audio: true});
-            localStream = stream
+            const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+            const audioTrack = stream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = false; // Mute the microphone by default
+            }
+            localStream = stream;
             resolve();
-        } catch (err){
+        } catch (err) {
             console.log(err);
             reject();
         }
@@ -146,7 +160,7 @@ const createPeerConnection = (offerObj) => {
     return new Promise(async (resolve, reject) => {
         peerConnection = new RTCPeerConnection(peerConfiguration);
         remoteStream = new MediaStream();
-        remoteVideoEl.srcObject = remoteStream;
+        videoPlayerEl.srcObject = remoteStream;
 
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
@@ -215,7 +229,9 @@ socket.on('streamer-disconnected', () => {
     if (peerConnection) {
         peerConnection.close();
         peerConnection = null;
+        console.log("The following user has disconnected: " + userName);
     }
-    localVideoEl.srcObject = null;
-    remoteVideoEl.srcObject = null;
+    videoPlayerEl.srcObject = null;
 });
+
+
