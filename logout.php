@@ -2,6 +2,6 @@
 session_start();
 session_unset();
 session_destroy();
-header("Location: login.php");
+header("Location: https://192.168.100.138:8181/login.php");
 exit();
 ?>
