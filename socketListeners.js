@@ -31,15 +31,3 @@ function createOfferEls(offers){
         answerEl.appendChild(newOfferEl);
     })
 }
-
-socket.on('hangupNotification', () => {
-    console.log('The other peer has hung up.');
-    if(peerConnection){
-        peerConnection.close();
-        peerConnection = null;
-        localVideoEl.srcObject = null;
-        remoteVideoEl.srcObject = null;
-        console.log("Call ended.")
-    }
-    window.location.href = '/dashboard.php';
-});
