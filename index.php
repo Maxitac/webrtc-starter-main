@@ -114,8 +114,7 @@ require 'check_session.php';
             <div id="videos">
                 <div id="video-wrapper">
                     <div id="waiting" class="btn btn-warning">Waiting for answer...</div>
-                    <video class="video-player" id="local-video" autoplay playsinline muted></video>
-                    <video class="video-player" id="remote-video" autoplay playsinline></video>
+                    <video class="video-player" id="video-player" autoplay playsinline controls></video>
                 </div>
             </div>
         </div>

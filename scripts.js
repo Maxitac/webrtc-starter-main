@@ -1,3 +1,21 @@
+/*const {createPool} = require('mysql');
+
+const pool = createPool({
+    host:"localhost",
+    user:"webrtcAdmin",
+    password:"webRTCAdmin@123",
+    database:"authentication",
+    connectionLimit: 10
+
+})*/
+
+/*const userName = "<?php echo htmlspecialchars($_SESSION['user_name']); ?>";
+console.log(userName);
+const password = "x";
+const roomId = "<?php echo htmlspecialchars($_SESSION['room_id']); ?>";
+console.log(roomId);
+document.querySelector('#user-name').innerHTML = userName;*/
+
 const userName = document.querySelector('meta[username="username"]').content;
 console.log('Hello ' + userName);
 const roomId = document.querySelector('meta[roomid="roomid"]').content;
@@ -8,8 +26,7 @@ const socket = io.connect('https://192.168.100.138:8181', {
     auth: { userName, password, roomId }
 });
 
-const localVideoEl = document.querySelector('#local-video');
-const remoteVideoEl = document.querySelector('#remote-video');
+const videoPlayerEl = document.querySelector('#video-player');
 
 let localStream;
 let remoteStream;
@@ -60,7 +77,7 @@ const hangup = async e => {
         peerConnection.close();
         peerConnection = null;
         socket.emit('hangup');
-        remoteVideoEl.srcObject = null;
+        videoPlayerEl.srcObject = null;
         console.log("User " + userName + " has hung up");
         window.location.href = 'https://192.168.100.138:8181/dashboard.php';
     }
@@ -82,11 +99,11 @@ const switchToScreenshare = async () => {
         const screenTrack = screenStream.getVideoTracks()[0];
         const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
         sender.replaceTrack(screenTrack);
-        localVideoEl.srcObject = screenStream;
+        videoPlayerEl.srcObject = screenStream;
         screenTrack.onended = () => {
             const webcamTrack = localStream.getVideoTracks()[0];
             sender.replaceTrack(webcamTrack);
-            localVideoEl.srcObject = localStream;
+            videoPlayerEl.srcObject = localStream;
         };
     }
 };
@@ -110,16 +127,16 @@ const fetchUserMedia = async () => {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         
         localStream = stream;
-        localVideoEl.srcObject = stream;
-        localVideoEl.muted = true; // Ensure the local video feed is muted to avoid feedback
-        localVideoEl.play(); // Explicitly play the video to ensure it's visible
+        videoPlayerEl.srcObject = stream;
+        videoPlayerEl.muted = true; // Ensure the local video feed is muted to avoid feedback
+        videoPlayerEl.play(); // Explicitly play the video to ensure it's visible
     } catch (err) {
         console.log(err);
     }
     const videoTrack = localStream.getVideoTracks()[0];
-    if (videoTrack) {
-        videoTrack.enabled = false; // Video is off by default, mic still active.
-    }
+        if (videoTrack){
+            videoTrack.enabled = false; // Video is off by default, mic still active.
+        }
 };
 
 const fetchRemoteMedia = () => {
@@ -143,7 +160,7 @@ const createPeerConnection = (offerObj) => {
     return new Promise(async (resolve, reject) => {
         peerConnection = new RTCPeerConnection(peerConfiguration);
         remoteStream = new MediaStream();
-        remoteVideoEl.srcObject = remoteStream;
+        videoPlayerEl.srcObject = remoteStream;
 
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
@@ -214,5 +231,7 @@ socket.on('streamer-disconnected', () => {
         peerConnection = null;
         console.log("The following user has disconnected: " + userName);
     }
-    remoteVideoEl.srcObject = null;
+    videoPlayerEl.srcObject = null;
 });
+
+
