@@ -1,14 +1,6 @@
 <?php
-if (!isset($_GET['username'])) {
-    header("Location : https://192.168.100.138:8181/login.php");
-    exit();
-}
-if (!isset($_GET['roomid'])) {
-    header("Location : https://192.168.100.138:8181/login.php");
-    exit();
-}
-if (!isset($_GET['userid'])) {
-    header("Location : https://192.168.100.138:8181/login.php");
+if (!isset($_GET['username']) || !isset($_GET['roomid']) || !isset($_GET['userid'])) {
+    header("Location: https://192.168.100.138:8181/login.php");
     exit();
 }
 
@@ -17,6 +9,27 @@ $roomid = $_GET['roomid'];
 $user_id = $_GET['userid'];
 
 require 'check_session.php';
+
+// Connect to the database
+$host = 'localhost';
+$db = 'authentication';
+$user = 'webrtcAdmin';
+$pass = 'webRTCAdmin@123';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Could not connect to the database $db :" . $e->getMessage());
+}
+
+// Check if the user is a host
+$stmt = $pdo->prepare("SELECT role_id FROM userrolesmapping WHERE user_id = :user_id");
+$stmt->bindParam(':user_id', $user_id);
+$stmt->execute();
+$userRole = $stmt->fetch(PDO::FETCH_ASSOC);
+$isHost = ($userRole && $userRole['role_id'] == 1);
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -104,7 +117,9 @@ require 'check_session.php';
     <div class="container">
         <div class="left-content">
             <div class="row mb-3 mt-3 justify-content-md-center">
-                <button id="call" class="btn btn-primary col-1">Call!</button>
+                <?php if ($isHost): ?>
+                    <button id="call" class="btn btn-primary col-1">Call!</button>
+                <?php endif; ?>
                 <button id="hangup" class="col-1 btn btn-primary">Hangup</button>
                 <button id="mute" class="btn btn-secondary col-1">Mute</button>
                 <button id="video" class="btn btn-secondary col-1">Video Off</button>

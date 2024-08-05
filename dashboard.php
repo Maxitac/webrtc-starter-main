@@ -33,6 +33,14 @@ $stmt->execute();
 $userRole = $stmt->fetch(PDO::FETCH_ASSOC);
 $isHost = ($userRole && $userRole['role_id'] == 1);
 
+// Function to log user activity
+function logActivity($pdo, $user_id, $activity_type) {
+    $stmt = $pdo->prepare("INSERT INTO useractivity (user_id, activity_type) VALUES (:user_id, :activity_type)");
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':activity_type', $activity_type);
+    $stmt->execute();
+}
+
 // Handle form submission for elevating participant to host
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['elevate_username'])) {
     $elevateUsername = $_POST['elevate_username'];
@@ -50,6 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['elevate_username'])) {
         $updateStmt = $pdo->prepare("UPDATE userrolesmapping SET role_id = 1 WHERE user_id = :user_id");
         $updateStmt->bindParam(':user_id', $elevateUserId);
         $updateStmt->execute();
+
+        // Log activity
+        logActivity($pdo, $user_id, "Elevated user $elevateUsername to host");
 
         echo "<p>User $elevateUsername has been elevated to host.</p>";
     } else {
@@ -220,11 +231,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['elevate_username'])) {
             form.style.display = form.style.display === 'none' || form.style.display === '' ? 'block' : 'none';
         }
 
+        function logActivity(activityType) {
+            fetch('log_activity.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ activity_type: activityType })
+            });
+        }
+
         document.querySelectorAll('.join-room').forEach(button => {
             button.addEventListener('click', function() {
                 const roomId = this.parentElement.getAttribute('data-room-id');
+                logActivity(`Joined room with ID ${roomId}`);
                 window.location.href = `join_room.php?room_id=${roomId}`;
             });
+        });
+
+        document.getElementById('create-room-form').addEventListener('submit', function() {
+            logActivity('Created a room');
+        });
+
+        document.getElementById('elevate-form').addEventListener('submit', function() {
+            logActivity('Elevated a participant to host');
         });
     </script>
 </body>
