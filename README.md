@@ -25,9 +25,9 @@ This project is a WebRTC-based application designed to facilitate video conferen
 ## Installation
 
 ### Prerequisites
-- Node.js
-- npm
-- MySQL
+- [Node.js](https://nodejs.org/en/download/package-manager/current)
+- [XAMPP](https://www.apachefriends.org/download.html)
+- [npm](https://docs.npmjs.com/cli/v10/commands/npm-install)
 
 ### Steps
 1. Clone the repository:
@@ -58,7 +58,23 @@ This project is a WebRTC-based application designed to facilitate video conferen
     nodemon ./server.js
     ```
 
-6. Open your browser and navigate to `http://localhost:3000` or via your IP Address as defined in scripts.js and server.js.
+6. Open your browser and navigate to `http://localhost:8181` or via your IP Address as defined in scripts.js and server.js.
+7. IMPORTANT! : Enable CORS IN APACHE.
+   Add the following lines to your apache config file (C:\Program Files\Apache Group\Apache2\conf):
+   ```sh
+   <Directory "C:/Apache24/htdocs">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET,POST,OPTIONS,DELETE,PUT"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+</Directory>
+    ```
+    Enable headers module by uncommenting the following line in the same file finally and restart Apache service
+     ```sh
+    LoadModule headers_module modules/mod_headers.so
+    ```
 
 ## Usage
 ### Sign Up
