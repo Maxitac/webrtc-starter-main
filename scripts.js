@@ -2,7 +2,7 @@ const userName = "User-"+Math.floor(Math.random() * 100000)
 const password = "x";
 document.querySelector('#user-name').innerHTML = userName;
 
-//if trying it on a phone, use this instead...
+
  const socket = io.connect('https://192.168.100.138:8181/',{
 //const socket = io.connect('https://localhost:8181/',{
     auth: {
@@ -83,8 +83,12 @@ const fetchUserMedia = ()=>{
         try{
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
-                // audio: true,
+                audio: true,
             });
+            const audioTrack = stream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = false; // Mute the microphone by default
+            }
             localVideoEl.srcObject = stream;
             localStream = stream;    
             resolve();    
@@ -151,6 +155,52 @@ const addNewIceCandidate = iceCandidate=>{
     peerConnection.addIceCandidate(iceCandidate)
     console.log("======Added Ice Candidate======")
 }
+const hangup = async e => {
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+        socket.emit('hangup');
+        videoPlayerEl.srcObject = null;
+        console.log("User " + userName + " has hung up");
+        window.location.href = 'https://192.168.100.138:8181';
+    }
+};
+const muteMicrophone = () => {
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        document.querySelector('#mute').innerText = audioTrack.enabled ? "Mute" : "Unmute";
+    }
+};
+const captureScreen = async () => {
+    try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        return screenStream;
+    } catch (err) {
+        console.error("Error: " + err);
+        return null;
+    }
+};
+const switchToScreenshare = async () => {
+    const screenStream = await captureScreen();
+    if (screenStream) {
+        const screenTrack = screenStream.getVideoTracks()[0];
+        const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+        sender.replaceTrack(screenTrack);
+        videoPlayerEl.srcObject = screenStream;
+        screenTrack.onended = () => {
+            const webcamTrack = localStream.getVideoTracks()[0];
+            sender.replaceTrack(webcamTrack);
+            videoPlayerEl.srcObject = localStream;
+        };
+    }
+};
+
+
 
 
 document.querySelector('#call').addEventListener('click',call)
+document.querySelector('#hangup').addEventListener('click', hangup);
+document.querySelector('#mute').addEventListener('click', muteMicrophone);
+document.querySelector('#screen-share').addEventListener('click', switchToScreenshare);
+document.querySelector('#video').addEventListener('click', toggleVideo);

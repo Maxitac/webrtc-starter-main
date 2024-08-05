@@ -4,6 +4,8 @@ const express = require('express');
 const app = express();
 const socketio = require('socket.io');
 app.use(express.static(__dirname))
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const { v4: uuidV4 } = require('uuid');
 
 //we need a key and cert to run https
 //we generated them with mkcert
@@ -26,6 +28,15 @@ const io = socketio(expressServer,{
     }
 });
 expressServer.listen(8181);
+
+const phpServer = 'http://localhost:80'; // Apache server URL
+
+// This section sets up the reverse proxy
+app.use('/', createProxyMiddleware({
+    target: phpServer,
+    changeOrigin: true,
+    ws: true
+}));
 
 //offers will contain {}
 const offers = [
